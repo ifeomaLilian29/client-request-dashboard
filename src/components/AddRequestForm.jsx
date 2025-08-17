@@ -7,10 +7,9 @@ export default function AddRequestForm({ onAdd }) {
   const [status, setStatus] = useState("Pending");
 
   const handleSubmit = (e) => {
-    e.preventDefault(); // prevent page reload
+    e.preventDefault();
     const newRequest = { client, description, priority, status };
-    onAdd(newRequest); // send data to parent component
-    // Clear the form
+    onAdd(newRequest);
     setClient("");
     setDescription("");
     setPriority("Low");
@@ -18,13 +17,14 @@ export default function AddRequestForm({ onAdd }) {
   };
 
   return (
-    <form onSubmit={handleSubmit}>
+    <form onSubmit={handleSubmit} className="space-y-4">
       <input
         type="text"
         placeholder="Client Name"
         value={client}
         onChange={(e) => setClient(e.target.value)}
         required
+        className="w-full p-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-400"
       />
       <input
         type="text"
@@ -32,18 +32,34 @@ export default function AddRequestForm({ onAdd }) {
         value={description}
         onChange={(e) => setDescription(e.target.value)}
         required
+        className="w-full p-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-400"
       />
-      <select value={priority} onChange={(e) => setPriority(e.target.value)}>
-        <option>Low</option>
-        <option>Medium</option>
-        <option>High</option>
-      </select>
-      <select value={status} onChange={(e) => setStatus(e.target.value)}>
-        <option>Pending</option>
-        <option>In Progress</option>
-        <option>Completed</option>
-      </select>
-      <button type="submit">Add Request</button>
+      <div className="flex gap-4">
+        <select
+          value={priority}
+          onChange={(e) => setPriority(e.target.value)}
+          className="flex-1 p-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-400"
+        >
+          <option>Low</option>
+          <option>Medium</option>
+          <option>High</option>
+        </select>
+        <select
+          value={status}
+          onChange={(e) => setStatus(e.target.value)}
+          className="flex-1 p-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-400"
+        >
+          <option>Pending</option>
+          <option>In Progress</option>
+          <option>Completed</option>
+        </select>
+      </div>
+      <button
+        type="submit"
+        className="w-full bg-blue-500 text-white p-2 rounded-md hover:bg-blue-600 transition"
+      >
+        Add Request
+      </button>
     </form>
   );
 }
