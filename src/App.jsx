@@ -1,32 +1,23 @@
-import { useState } from "react";
-import AddRequestForm from "./components/AddRequestForm";
-import RequestList from "./components/RequestList";
+// src/App.jsx
+import { BrowserRouter as Router, Routes, Route, Navigate, Link } from "react-router-dom";
+import Dashboard from "./pages/Dashboard";
+import LoginPage from "./pages/LoginPage";
 
 export default function App() {
-  const [requests, setRequests] = useState([]);
-
-  const handleAddRequest = (newRequest) => {
-    setRequests([...requests, newRequest]);
-  };
-
   return (
-      <div className="p-4 bg-gray-100 min-h-screen">
-      {/* Header */}
-      <h1 className="text-3xl font-bold text-center text-blue-600 mb-4">
-        Client Request Dashboard
-      </h1>
-      <p className="text-center text-gray-700 mb-6">
-        Track and manage all client requests
-      </p>
+    <Router>
+      {/* Temporary top nav just to move around while building */}
+      <nav className="flex gap-4 p-4 bg-purple-700 text-white">
+        <Link to="/dashboard" className="hover:underline">Dashboard</Link>
+        <Link to="/login" className="hover:underline">Login</Link>
+      </nav>
 
-      {/* Add Request Form */}
-      <div className="mb-6">
-        <AddRequestForm onAddRequest={handleAddRequest} />
-      </div>
-
-      {/* Request List */}
-      <RequestList requests={requests} />
-   
-    </div>
+      <Routes>
+        <Route path="/" element={<Navigate to="/dashboard" replace />} />
+        <Route path="/dashboard" element={<Dashboard />} />
+        <Route path="/login" element={<LoginPage />} />
+      </Routes>
+    </Router>
   );
 }
+
