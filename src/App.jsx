@@ -1,23 +1,30 @@
 // src/App.jsx
-import { BrowserRouter as Router, Routes, Route, Navigate, Link } from "react-router-dom";
-import Dashboard from "./pages/Dashboard";
+import React from "react";
+import { Routes, Route, Navigate } from "react-router-dom";
 import LoginPage from "./pages/LoginPage";
+import Dashboard from "./pages/Dashboard";
 
-export default function App() {
+function App() {
+  const user = JSON.parse(localStorage.getItem("user"));
+
   return (
-    <Router>
-      {/* Temporary top nav just to move around while building */}
-      <nav className="flex gap-4 p-4 bg-purple-700 text-white">
-        <Link to="/dashboard" className="hover:underline">Dashboard</Link>
-        <Link to="/login" className="hover:underline">Login</Link>
-      </nav>
+    <Routes>
+      {/* Root path */}
+      <Route
+        path="/"
+        element={user ? <Navigate to="/dashboard" /> : <LoginPage />}
+      />
 
-      <Routes>
-        <Route path="/" element={<Navigate to="/dashboard" replace />} />
-        <Route path="/dashboard" element={<Dashboard />} />
-        <Route path="/login" element={<LoginPage />} />
-      </Routes>
-    </Router>
+      {/* Dashboard path */}
+      <Route
+        path="/dashboard"
+        element={user ? <Dashboard /> : <Navigate to="/" />}
+      />
+
+      {/* Fallback for any unknown route */}
+      <Route path="*" element={<Navigate to="/" />} />
+    </Routes>
   );
 }
 
+export default App;
