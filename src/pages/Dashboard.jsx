@@ -1,135 +1,112 @@
 // src/pages/Dashboard.jsx
-import React, { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import React, { useState } from "react";
 
 const Dashboard = () => {
-  const navigate = useNavigate();
-  const [requests, setRequests] = useState([]);
-  const [newRequest, setNewRequest] = useState("");
-  const [filter, setFilter] = useState("all");
+  const [requests, setRequests] = useState([
+    { id: 1, client: "Client A", task: "Schedule meeting", priority: "High", status: "Pending" },
+    { id: 2, client: "Client B", task: "Prepare report", priority: "Medium", status: "Completed" },
+  ]);
 
-  useEffect(() => {
-    const user = localStorage.getItem("user");
-    if (!user) {
-      navigate("/");
-      return;
-    }
+  const [newRequest, setNewRequest] = useState({ client: "", task: "", priority: "Low", status: "Pending" });
 
-    const savedRequests = JSON.parse(localStorage.getItem("requests")) || [];
-    setRequests(savedRequests);
-  }, [navigate]);
-
-  const addRequest = () => {
-    if (!newRequest.trim()) return;
-    const request = { id: Date.now(), text: newRequest, completed: false };
-    const updatedRequests = [...requests, request];
-    setRequests(updatedRequests);
-    localStorage.setItem("requests", JSON.stringify(updatedRequests));
-    setNewRequest("");
+  const handleAddRequest = () => {
+    if (!newRequest.client || !newRequest.task) return;
+    setRequests([
+      ...requests,
+      { id: Date.now(), ...newRequest }
+    ]);
+    setNewRequest({ client: "", task: "", priority: "Low", status: "Pending" });
   };
 
-  const toggleRequest = (id) => {
-    const updatedRequests = requests.map((r) =>
-      r.id === id ? { ...r, completed: !r.completed } : r
+  const toggleStatus = (id) => {
+    setRequests(
+      requests.map((req) =>
+        req.id === id
+          ? { ...req, status: req.status === "Pending" ? "Completed" : "Pending" }
+          : req
+      )
     );
-    setRequests(updatedRequests);
-    localStorage.setItem("requests", JSON.stringify(updatedRequests));
   };
-
-  const handleLogout = () => {
-    localStorage.removeItem("user");
-    navigate("/");
-  };
-
-  const filteredRequests =
-    filter === "all"
-      ? requests
-      : requests.filter((r) =>
-          filter === "completed" ? r.completed : !r.completed
-        );
 
   return (
     <div className="min-h-screen bg-gray-100 p-6">
-      <div className="max-w-3xl mx-auto bg-white p-6 rounded shadow">
-        <div className="flex justify-between items-center mb-4">
-          <h1 className="text-2xl font-bold">Client Requests</h1>
-          <button
-            onClick={handleLogout}
-            className="bg-red-500 text-white px-3 py-1 rounded hover:bg-red-600"
-          >
-            Logout
-          </button>
-        </div>
+      <h1 className="text-3xl font-bold text-center mb-6">Client Request Dashboard</h1>
 
-        <div className="flex mb-4">
+      {/* Add Request Form */}
+      <div className="bg-white p-4 rounded-2xl shadow mb-6 max-w-2xl mx-auto">
+        <h2 className="text-xl font-semibold mb-4">Add New Request</h2>
+        <div className="grid grid-cols-2 gap-4">
           <input
             type="text"
-            value={newRequest}
-            onChange={(e) => setNewRequest(e.target.value)}
-            placeholder="Add new request"
-            className="flex-1 border px-3 py-2 rounded mr-2"
+            placeholder="Client Name"
+            value={newRequest.client}
+            onChange={(e) => setNewRequest({ ...newRequest, client: e.target.value })}
+            className="border p-2 rounded"
           />
-          <button
-            onClick={addRequest}
-            className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
+          <input
+            type="text"
+            placeholder="Task"
+            value={newRequest.task}
+            onChange={(e) => setNewRequest({ ...newRequest, task: e.target.value })}
+            className="border p-2 rounded"
+          />
+          <select
+            value={newRequest.priority}
+            onChange={(e) => setNewRequest({ ...newRequest, priority: e.target.value })}
+            className="border p-2 rounded"
           >
-            Add
+            <option>Low</option>
+            <option>Medium</option>
+            <option>High</option>
+          </select>
+          <button
+            onClick={handleAddRequest}
+            className="bg-blue-600 text-white p-2 rounded hover:bg-blue-700"
+          >
+            Add Request
           </button>
         </div>
+      </div>
 
-        <div className="mb-4">
-          <button
-            onClick={() => setFilter("all")}
-            className={`px-3 py-1 rounded mr-2 ${
-              filter === "all" ? "bg-blue-600 text-white" : "bg-gray-200"
-            }`}
-          >
-            All
-          </button>
-          <button
-            onClick={() => setFilter("completed")}
-            className={`px-3 py-1 rounded mr-2 ${
-              filter === "completed" ? "bg-blue-600 text-white" : "bg-gray-200"
-            }`}
-          >
-            Completed
-          </button>
-          <button
-            onClick={() => setFilter("pending")}
-            className={`px-3 py-1 rounded ${
-              filter === "pending" ? "bg-blue-600 text-white" : "bg-gray-200"
-            }`}
-          >
-            Pending
-          </button>
-        </div>
-
-        {filteredRequests.length === 0 ? (
-          <p className="text-gray-500">No requests found.</p>
-        ) : (
-          <ul>
-            {filteredRequests.map((r) => (
-              <li
-                key={r.id}
-                className="flex justify-between items-center border-b py-2"
-              >
-                <span className={r.completed ? "line-through text-gray-400" : ""}>
-                  {r.text}
-                </span>
-                <button
-                  onClick={() => toggleRequest(r.id)}
-                  className={`px-3 py-1 rounded ${
-                    r.completed
-                      ? "bg-green-500 text-white hover:bg-green-600"
-                      : "bg-gray-300 hover:bg-gray-400"
-                  }`}
-                >
-                  {r.completed ? "Done" : "Pending"}
-                </button>
-              </li>
+      {/* Requests Table */}
+      <div className="bg-white p-4 rounded-2xl shadow max-w-4xl mx-auto">
+        <h2 className="text-xl font-semibold mb-4">Requests</h2>
+        <table className="w-full border-collapse">
+          <thead>
+            <tr className="bg-gray-200">
+              <th className="p-2 border">Client</th>
+              <th className="p-2 border">Task</th>
+              <th className="p-2 border">Priority</th>
+              <th className="p-2 border">Status</th>
+              <th className="p-2 border">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {requests.map((req) => (
+              <tr key={req.id} className="text-center">
+                <td className="p-2 border">{req.client}</td>
+                <td className="p-2 border">{req.task}</td>
+                <td className="p-2 border">{req.priority}</td>
+                <td className={`p-2 border font-semibold ${req.status === "Completed" ? "text-green-600" : "text-red-600"}`}>
+                  {req.status}
+                </td>
+                <td className="p-2 border">
+                  <button
+                    onClick={() => toggleStatus(req.id)}
+                    className="bg-yellow-500 text-white px-3 py-1 rounded hover:bg-yellow-600"
+                  >
+                    Toggle Status
+                  </button>
+                </td>
+              </tr>
             ))}
-          </ul>
-        )}
+            {requests.length === 0 && (
+              <tr>
+                <td colSpan="5" className="p-4 text-gray-500">No requests yet.</td>
+              </tr>
+            )}
+          </tbody>
+        </table>
       </div>
     </div>
   );
