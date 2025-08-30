@@ -1,29 +1,18 @@
-// src/App.jsx
-import React from "react";
-import { Routes, Route, Navigate } from "react-router-dom";
+import { useState } from "react";
 import LoginPage from "./pages/LoginPage";
 import Dashboard from "./pages/Dashboard";
 
 function App() {
-  const user = JSON.parse(localStorage.getItem("user"));
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
 
   return (
-    <Routes>
-      {/* Root path */}
-      <Route
-        path="/"
-        element={user ? <Navigate to="/dashboard" /> : <LoginPage />}
-      />
-
-      {/* Dashboard path */}
-      <Route
-        path="/dashboard"
-        element={user ? <Dashboard /> : <Navigate to="/" />}
-      />
-
-      {/* Fallback for any unknown route */}
-      <Route path="*" element={<Navigate to="/" />} />
-    </Routes>
+    <div className="min-h-screen bg-gray-100">
+      {isLoggedIn ? (
+        <Dashboard onLogout={() => setIsLoggedIn(false)} />
+      ) : (
+        <LoginPage onLogin={() => setIsLoggedIn(true)} />
+      )}
+    </div>
   );
 }
 
