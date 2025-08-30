@@ -1,295 +1,203 @@
 // src/pages/Dashboard.jsx
-import React, { useEffect, useMemo, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import React, { useState, useEffect } from "react";
 
-const BADGE = {
-  High:   "bg-red-50 text-red-700 border border-red-200",
-  Medium: "bg-amber-50 text-amber-700 border border-amber-200",
-  Low:    "bg-green-50 text-green-700 border border-green-200",
-};
-
-const STATUS = {
-  true:  "bg-green-50 text-green-700 border border-green-200",   // completed
-  false: "bg-amber-50 text-amber-700 border border-amber-200",   // pending
-};
-
-export default function Dashboard() {
-  const navigate = useNavigate();
-
+function Dashboard() {
   const [requests, setRequests] = useState([]);
-  const [newText, setNewText] = useState("");
-  const [newClient, setNewClient] = useState("");
-  const [newPriority, setNewPriority] = useState("Medium");
+  const [formData, setFormData] = useState({
+    client: "",
+    description: "",
+    priority: "Low",
+    status: "Pending",
+  });
+  const [isEditing, setIsEditing] = useState(false);
+  const [editingIndex, setEditingIndex] = useState(null);
+  const [filterClient, setFilterClient] = useState("");
+  const [filterStatus, setFilterStatus] = useState("");
 
-  const [filter, setFilter] = useState("all"); // all | pending | completed
-  const [search, setSearch] = useState("");
-
-  // --- Load session + data (no blinking) ---
   useEffect(() => {
-    const user = localStorage.getItem("user");
-    if (!user) {
-      navigate("/");
-      return;
+    const storedRequests = JSON.parse(localStorage.getItem("requests")) || [];
+    setRequests(storedRequests);
+  }, []);
+
+  useEffect(() => {
+    localStorage.setItem("requests", JSON.stringify(requests));
+  }, [requests]);
+
+  const handleChange = (e) => {
+    setFormData({ ...formData, [e.target.name]: e.target.value });
+  };
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    if (isEditing) {
+      const updatedRequests = [...requests];
+      updatedRequests[editingIndex] = formData;
+      setRequests(updatedRequests);
+      setIsEditing(false);
+      setEditingIndex(null);
+    } else {
+      setRequests([...requests, formData]);
     }
-    const saved = JSON.parse(localStorage.getItem("requests")) || [];
-    setRequests(saved);
-  }, [navigate]);
-
-  // --- Helpers to persist ---
-  const save = (next) => {
-    setRequests(next);
-    localStorage.setItem("requests", JSON.stringify(next));
+    setFormData({ client: "", description: "", priority: "Low", status: "Pending" });
   };
 
-  // --- Actions ---
-  const addRequest = (e) => {
-    e?.preventDefault?.();
-    if (!newText.trim()) return;
-
-    const item = {
-      id: Date.now(),
-      text: newText.trim(),
-      client: newClient.trim() || "",     // keep optional to not break old data
-      priority: newPriority || "Medium",  // default
-      completed: false,
-      createdAt: Date.now(),
-    };
-    const next = [...requests, item];
-    save(next);
-    setNewText("");
-    setNewClient("");
-    setNewPriority("Medium");
+  const handleDelete = (index) => {
+    const updatedRequests = requests.filter((_, i) => i !== index);
+    setRequests(updatedRequests);
   };
 
-  const toggleRequest = (id) => {
-    const next = requests.map((r) =>
-      r.id === id ? { ...r, completed: !r.completed } : r
-    );
-    save(next);
+  const handleEdit = (index) => {
+    setFormData(requests[index]);
+    setIsEditing(true);
+    setEditingIndex(index);
   };
 
-  const deleteRequest = (id) => {
-    const next = requests.filter((r) => r.id !== id);
-    save(next);
-  };
+  const filteredRequests = requests
+    .filter((req) => (filterClient ? req.client.toLowerCase().includes(filterClient.toLowerCase()) : true))
+    .filter((req) => (filterStatus ? req.status === filterStatus : true));
 
-  const handleLogout = () => {
-    localStorage.removeItem("user");
-    navigate("/");
-  };
-
-  // --- Derived (filter + search) ---
-  const filtered = useMemo(() => {
-    let list = [...requests];
-
-    if (filter !== "all") {
-      const wantCompleted = filter === "completed";
-      list = list.filter((r) => !!r.completed === wantCompleted);
-    }
-
-    if (search.trim()) {
-      const q = search.toLowerCase();
-      list = list.filter((r) => {
-        const t = (r.text || "").toLowerCase();
-        const c = (r.client || "").toLowerCase();
-        return t.includes(q) || c.includes(q);
-      });
-    }
-
-    // newest first
-    list.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
-    return list;
-  }, [requests, filter, search]);
-
-  const total = requests.length;
-  const done = requests.filter((r) => r.completed).length;
-  const pending = total - done;
+  const sortedRequests = filteredRequests.sort((a, b) => {
+    const priorityOrder = { High: 3, Medium: 2, Low: 1 };
+    return priorityOrder[b.priority] - priorityOrder[a.priority];
+  });
 
   return (
-    <div className="min-h-screen bg-slate-50">
-      {/* Top bar */}
-      <header className="bg-gradient-to-r from-indigo-600 to-blue-600 text-white">
-        <div className="max-w-5xl mx-auto px-4 py-4 flex items-center justify-between">
-          <h1 className="text-xl sm:text-2xl font-bold tracking-tight">
-            Client Request Dashboard
-          </h1>
-          <button
-            onClick={handleLogout}
-            className="bg-white/10 hover:bg-white/20 transition rounded-lg px-3 py-2 text-sm font-medium"
-          >
-            Logout
-          </button>
-        </div>
-      </header>
+    <div className="min-h-screen bg-gray-100 p-6">
+      <h1 className="text-3xl font-bold mb-6 text-center text-gray-800">Client Request Dashboard</h1>
 
-      <main className="max-w-5xl mx-auto px-4 py-6">
-        {/* Stats */}
-        <section className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
-          <div className="bg-white shadow-sm rounded-xl p-4">
-            <p className="text-slate-500 text-sm">Total</p>
-            <p className="text-2xl font-semibold">{total}</p>
-          </div>
-          <div className="bg-white shadow-sm rounded-xl p-4">
-            <p className="text-slate-500 text-sm">Pending</p>
-            <p className="text-2xl font-semibold text-amber-600">{pending}</p>
-          </div>
-          <div className="bg-white shadow-sm rounded-xl p-4">
-            <p className="text-slate-500 text-sm">Completed</p>
-            <p className="text-2xl font-semibold text-green-600">{done}</p>
-          </div>
-        </section>
-
-        {/* Add form */}
-        <section className="bg-white shadow-sm rounded-xl p-4 mb-6">
-          <h2 className="text-lg font-semibold mb-3">Add New Request</h2>
-          <form
-            onSubmit={addRequest}
-            className="flex flex-col gap-3 sm:flex-row sm:items-center"
-          >
+      {/* Form */}
+      <form
+        onSubmit={handleSubmit}
+        className="bg-white p-6 rounded-lg shadow-md max-w-2xl mx-auto mb-8 space-y-4"
+      >
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label className="block font-medium mb-1">Client Name</label>
             <input
               type="text"
-              placeholder="Client (optional)"
-              value={newClient}
-              onChange={(e) => setNewClient(e.target.value)}
-              className="w-full sm:max-w-[220px] border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-            />
-            <input
-              type="text"
-              placeholder="Describe the request…"
-              value={newText}
-              onChange={(e) => setNewText(e.target.value)}
-              className="flex-1 border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              name="client"
+              value={formData.client}
+              onChange={handleChange}
+              className="w-full border p-2 rounded focus:outline-none focus:ring-2 focus:ring-blue-400"
               required
             />
+          </div>
+          <div>
+            <label className="block font-medium mb-1">Priority</label>
             <select
-              value={newPriority}
-              onChange={(e) => setNewPriority(e.target.value)}
-              className="w-full sm:w-auto border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              name="priority"
+              value={formData.priority}
+              onChange={handleChange}
+              className="w-full border p-2 rounded focus:outline-none focus:ring-2 focus:ring-blue-400"
             >
-              <option>High</option>
-              <option>Medium</option>
               <option>Low</option>
+              <option>Medium</option>
+              <option>High</option>
             </select>
-            <button
-              type="submit"
-              className="w-full sm:w-auto bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg px-4 py-2 font-medium transition"
+          </div>
+        </div>
+        <div>
+          <label className="block font-medium mb-1">Request Description</label>
+          <textarea
+            name="description"
+            value={formData.description}
+            onChange={handleChange}
+            className="w-full border p-2 rounded focus:outline-none focus:ring-2 focus:ring-blue-400"
+            required
+          />
+        </div>
+        <div>
+          <label className="block font-medium mb-1">Status</label>
+          <select
+            name="status"
+            value={formData.status}
+            onChange={handleChange}
+            className="w-full border p-2 rounded focus:outline-none focus:ring-2 focus:ring-blue-400"
+          >
+            <option>Pending</option>
+            <option>In Progress</option>
+            <option>Completed</option>
+          </select>
+        </div>
+        <button
+          type="submit"
+          className={`w-full py-2 rounded text-white font-semibold ${
+            isEditing ? "bg-green-500 hover:bg-green-600" : "bg-blue-500 hover:bg-blue-600"
+          }`}
+        >
+          {isEditing ? "Update Request" : "Add Request"}
+        </button>
+      </form>
+
+      {/* Filters */}
+      <div className="max-w-2xl mx-auto flex flex-col md:flex-row gap-4 mb-6">
+        <input
+          type="text"
+          placeholder="Filter by client"
+          value={filterClient}
+          onChange={(e) => setFilterClient(e.target.value)}
+          className="flex-1 border p-2 rounded focus:outline-none focus:ring-2 focus:ring-blue-400"
+        />
+        <select
+          value={filterStatus}
+          onChange={(e) => setFilterStatus(e.target.value)}
+          className="flex-1 border p-2 rounded focus:outline-none focus:ring-2 focus:ring-blue-400"
+        >
+          <option value="">All Status</option>
+          <option>Pending</option>
+          <option>In Progress</option>
+          <option>Completed</option>
+        </select>
+      </div>
+
+      {/* Requests List */}
+      <div className="max-w-3xl mx-auto grid gap-4">
+        {sortedRequests.length === 0 ? (
+          <p className="text-center text-gray-500">No requests found.</p>
+        ) : (
+          sortedRequests.map((req, index) => (
+            <div
+              key={index}
+              className="bg-white p-4 rounded-lg shadow flex flex-col md:flex-row justify-between items-start md:items-center"
             >
-              Add
-            </button>
-          </form>
-        </section>
-
-        {/* Toolbar: filters + search */}
-        <section className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between mb-3">
-          <div className="inline-flex rounded-lg overflow-hidden border bg-white shadow-sm">
-            {["all", "pending", "completed"].map((key) => (
-              <button
-                key={key}
-                onClick={() => setFilter(key)}
-                className={`px-4 py-2 text-sm capitalize ${
-                  filter === key
-                    ? "bg-slate-100 font-semibold"
-                    : "hover:bg-slate-50"
-                }`}
-              >
-                {key}
-              </button>
-            ))}
-          </div>
-
-          <div className="relative">
-            <input
-              type="text"
-              placeholder="Search client or request…"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="w-full sm:w-80 border rounded-lg pl-3 pr-10 py-2 bg-white shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
-            />
-            {search && (
-              <button
-                onClick={() => setSearch("")}
-                className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
-                title="Clear"
-              >
-                ×
-              </button>
-            )}
-          </div>
-        </section>
-
-        {/* Table */}
-        <section className="bg-white shadow-sm rounded-xl overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="min-w-full text-sm">
-              <thead className="bg-slate-50 text-slate-600">
-                <tr>
-                  <th className="text-left font-semibold px-4 py-3">Client</th>
-                  <th className="text-left font-semibold px-4 py-3">Request</th>
-                  <th className="text-left font-semibold px-4 py-3">Priority</th>
-                  <th className="text-left font-semibold px-4 py-3">Status</th>
-                  <th className="text-left font-semibold px-4 py-3">Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filtered.length === 0 ? (
-                  <tr>
-                    <td colSpan={5} className="px-4 py-10 text-center text-slate-500">
-                      No matching requests.
-                    </td>
-                  </tr>
-                ) : (
-                  filtered.map((r) => {
-                    const priority = r.priority || "Medium";
-                    const client = r.client || "—";
-                    return (
-                      <tr key={r.id} className="border-t">
-                        <td className="px-4 py-3">{client}</td>
-                        <td className="px-4 py-3">
-                          <span className="block max-w-xl truncate" title={r.text}>
-                            {r.text}
-                          </span>
-                        </td>
-                        <td className="px-4 py-3">
-                          <span className={`px-2 py-1 rounded-full text-xs ${BADGE[priority] || BADGE.Medium}`}>
-                            {priority}
-                          </span>
-                        </td>
-                        <td className="px-4 py-3">
-                          <span className={`px-2 py-1 rounded-full text-xs ${STATUS[r.completed]}`}>
-                            {r.completed ? "Completed" : "Pending"}
-                          </span>
-                        </td>
-                        <td className="px-4 py-3">
-                          <div className="flex gap-2">
-                            <button
-                              onClick={() => toggleRequest(r.id)}
-                              className={`px-3 py-1 rounded-lg text-xs font-medium border transition ${
-                                r.completed
-                                  ? "bg-white hover:bg-slate-50 border-slate-200 text-slate-700"
-                                  : "bg-indigo-600 hover:bg-indigo-700 border-indigo-600 text-white"
-                              }`}
-                              title="Toggle status"
-                            >
-                              {r.completed ? "Undo" : "Mark Done"}
-                            </button>
-                            <button
-                              onClick={() => deleteRequest(r.id)}
-                              className="px-3 py-1 rounded-lg text-xs font-medium border border-rose-200 bg-rose-50 text-rose-700 hover:bg-rose-100 transition"
-                              title="Delete"
-                            >
-                              Delete
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    );
-                  })
-                )}
-              </tbody>
-            </table>
-          </div>
-        </section>
-      </main>
+              <div className="mb-2 md:mb-0">
+                <h2 className="font-semibold text-lg">{req.client}</h2>
+                <p className="text-gray-600">{req.description}</p>
+                <div className="flex gap-2 mt-1">
+                  <span className={`px-2 py-1 rounded text-white text-sm ${
+                    req.priority === "High" ? "bg-red-500" :
+                    req.priority === "Medium" ? "bg-yellow-500" : "bg-green-500"
+                  }`}>
+                    {req.priority}
+                  </span>
+                  <span className={`px-2 py-1 rounded text-white text-sm ${
+                    req.status === "Pending" ? "bg-gray-500" :
+                    req.status === "In Progress" ? "bg-blue-500" : "bg-green-600"
+                  }`}>
+                    {req.status}
+                  </span>
+                </div>
+              </div>
+              <div className="flex gap-2 mt-2 md:mt-0">
+                <button
+                  onClick={() => handleEdit(index)}
+                  className="bg-yellow-500 hover:bg-yellow-600 text-white px-3 py-1 rounded"
+                >
+                  Edit
+                </button>
+                <button
+                  onClick={() => handleDelete(index)}
+                  className="bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded"
+                >
+                  Delete
+                </button>
+              </div>
+            </div>
+          ))
+        )}
+      </div>
     </div>
   );
 }
+
+export default Dashboard;

@@ -1,18 +1,15 @@
-import { useState } from "react";
+// src/App.jsx
+import { Routes, Route, Navigate } from "react-router-dom";
 import LoginPage from "./pages/LoginPage";
 import Dashboard from "./pages/Dashboard";
 
 function App() {
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
-
   return (
-    <div className="min-h-screen bg-gray-100">
-      {isLoggedIn ? (
-        <Dashboard onLogout={() => setIsLoggedIn(false)} />
-      ) : (
-        <LoginPage onLogin={() => setIsLoggedIn(true)} />
-      )}
-    </div>
+    <Routes>
+      <Route path="/" element={<Navigate to="/login" />} />
+      <Route path="/login" element={<LoginPage />} />
+      <Route path="/dashboard" element={<Dashboard />} />
+    </Routes>
   );
 }
 
